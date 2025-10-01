@@ -780,67 +780,42 @@
         ticketData.mimeType = file.type;
       }
       
-      await fetch(webAppURL, {
+      fetch(webAppURL, {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify(ticketData),
         headers: { "Content-Type": "application/json" }
       });
 
-      showToast("Ticket raised successfully!");
+      showToast("✓ Ticket raised successfully!");
       document.getElementById("ticketForm").reset();
       
       setTimeout(() => {
         loadTickets();
       }, 1000);
-    } catch (error) {
-      console.error('Error submitting ticket:', error);
-      showToast("Failed to raise ticket. Please try again.");
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalText;
+    });
+
+    // Resolve Ticket
+    function resolveTicket(id) {
+      fetch(webAppURL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({action: "resolve", id: id}),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      showToast("✓ Ticket resolved successfully!");
+      
+      setTimeout(() => {
+        loadTickets();
+      }, 1000);
     }
-  });
 
-function resolveTicket(e, id) {
-  if (!id) return;
+    // Initial load
+    loadTickets();
 
-  const button = e.currentTarget;
-  if (!button || button.disabled) return;
-
-  const row = button.closest('tr');
-  button.disabled = true;
-  button.innerHTML = '<span class="btn-spinner"></span><span>Resolving...</span>';
-
-  // UI से तुरंत हटाएँ
-  if (row) {
-    row.style.transition = 'all 0.4s ease';
-    row.style.opacity = '0';
-    row.style.transform = 'translateX(100px)';
-    setTimeout(() => row.remove(), 400);
-  }
-
-  // backend को resolve request भेजो
-  fetch(webAppURL, {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify({action: "resolve", id: id}),
-    headers: { "Content-Type": "application/json" }
-  })
-  .then(() => {
-    showToast("Ticket resolved successfully!");
-    setTimeout(loadTickets, 1500); // refresh backend से
-  })
-  .catch(err => {
-    console.error('Error resolving ticket:', err);
-    button.disabled = false;
-    button.innerHTML = '✓ Resolve';
-  });
-}
-
-
-  loadTickets();
-  setInterval(loadTickets, 3000);
-</script>
+    // Auto-refresh every 30 seconds
+    setInterval(loadTickets, 30000);
+  </script>
 </body>
 </html>
