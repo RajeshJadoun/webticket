@@ -812,7 +812,7 @@ function resolveTicket(e, id) {
   button.disabled = true;
   button.innerHTML = '<span class="btn-spinner"></span><span>Resolving...</span>';
 
-  // ---- FRONTEND से row तुरंत हटाएँ ----
+  // ✅ Frontend से तुरंत row हटाएँ
   if (row) {
     row.style.transition = 'all 0.4s ease';
     row.style.opacity = '0';
@@ -820,7 +820,7 @@ function resolveTicket(e, id) {
     setTimeout(() => {
       row.remove();
 
-      // अगर कोई row नहीं बची तो empty message दिखाएँ
+      // अगर कोई row नहीं बची तो "No active tickets" दिखाएँ
       const tbody = document.querySelector('#ticketList tbody');
       if (tbody && tbody.children.length === 0) {
         document.getElementById("ticketList").innerHTML = `
@@ -833,19 +833,21 @@ function resolveTicket(e, id) {
     }, 400);
   }
 
-  // ---- Backend को कॉल करें (response ignore करेंगे) ----
+  // ✅ Backend को call करें (no-cors में response नहीं आएगा)
   fetch(webAppURL, {
     method: "POST",
-    mode: "no-cors",    // ⚠️ यही रखना है
-    body: JSON.stringify({ action: "resolve", id: id }),
+    mode: "no-cors",   // ❗ यह वही रहेगा
+    body: JSON.stringify({action: "resolve", id: id}),
     headers: { "Content-Type": "application/json" }
-  }).catch(err => {
-    console.error("Error resolving ticket:", err);
   });
 
-  // ---- Toast message ----
+  // ✅ Success toast दिखाएँ
   showToast("Ticket resolved successfully!");
 
-  // ---- Backend से दुबारा load करवाएँ (sync के लिए) ----
-  setTimeout(loadTickets, 4000);  // 4 sec बाद fresh load
+  // ✅ थोड़ी देर बाद backend से fresh tickets reload करें
+  setTimeout(loadTickets, 3000);
 }
+
+</script>
+</body>
+</html>
