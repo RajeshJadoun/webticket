@@ -57,6 +57,7 @@
   </div>
 
 <script>
+    // <<<<< आपका Web App URL यहाँ आएगा >>>>>
     const webAppURL = "https://script.google.com/macros/s/AKfycbz_OuSoTAPH89LUeQOgYK3zgFaFjNWX8pxUmdbpnvsk6bebQusyIeuUiCZGh7oIJGPo/exec";
 
     function showToast(message) {
@@ -70,13 +71,14 @@
       toast.style.color = 'white';
       toast.style.padding = '15px 25px';
       toast.style.borderRadius = '8px';
+      toast.style.zIndex = '1000';
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
     }
 
     function formatTime(timestamp) {
       if (!timestamp) return 'N/A';
-      return new Date(timestamp).toLocaleString('en-IN');
+      return new Date(timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
     }
 
     function loadTickets() {
@@ -86,27 +88,47 @@
         .catch(err => console.error(err));
     }
 
+    // ############ START: यहाँ बदलाव किया गया है ############
     function renderTickets(tickets) {
       const container = document.getElementById("ticketList");
       if (tickets.length === 0) {
         container.innerHTML = `<div style="text-align:center; padding: 60px;">🎉 No Active Tickets.</div>`;
         return;
       }
-      let tableHTML = `<table><thead><tr><th>Ticket ID</th><th>Raised For</th><th>Department</th><th>Issue</th><th>File</th><th>Raised At</th><th>Action</th></tr></thead><tbody>`;
+      let tableHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Ticket ID</th>
+              <th>Raised For</th>
+              <th>Raised By</th>
+              <th>Department</th>
+              <th>Issue</th>
+              <th>File</th>
+              <th>Raised At</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
       tickets.forEach(ticket => {
-        tableHTML += `<tr>
+        tableHTML += `
+          <tr>
             <td>#${ticket.id}</td>
-            <td>${ticket.name}</td>
+            <td>${ticket.raisedFor || 'N/A'}</td>
+            <td>${ticket.name || 'N/A'}</td>
             <td>${ticket.department || 'N/A'}</td>
             <td>${ticket.issue}</td>
             <td>${ticket.fileUrl ? `<a href="${ticket.fileUrl}" target="_blank">View File</a>` : 'No file'}</td>
             <td>${formatTime(ticket.date)}</td>
             <td><button class="resolve-btn" onclick="resolveTicket('${ticket.id}')">✓ Resolve</button></td>
-          </tr>`;
+          </tr>
+        `;
       });
       tableHTML += `</tbody></table>`;
       container.innerHTML = tableHTML;
     }
+    // ############ END: यहाँ बदलाव किया गया है ############
     
     function fileToBase64(file) {
         return new Promise((resolve, reject) => {
@@ -135,10 +157,9 @@
           ticketData.mimeType = fileInput.type;
       }
       
-      // no-cors के साथ fetch का उपयोग करना
       fetch(webAppURL, {
         method: "POST",
-        mode: "no-cors", // <<<<<<<<<<<<<<< NO-CORS का उपयोग यहाँ किया गया है
+        mode: "no-cors",
         body: JSON.stringify(ticketData),
         headers: { "Content-Type": "application/json" }
       });
@@ -152,10 +173,9 @@
     });
 
     function resolveTicket(id) {
-      // no-cors के साथ fetch का उपयोग करना
       fetch(webAppURL, {
         method: "POST",
-        mode: "no-cors", // <<<<<<<<<<<<<<< NO-CORS का उपयोग यहाँ किया गया है
+        mode: "no-cors",
         body: JSON.stringify({action: "resolve", id: id}),
         headers: { "Content-Type": "application/json" }
       });
