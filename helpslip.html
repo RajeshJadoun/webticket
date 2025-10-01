@@ -271,7 +271,7 @@
       opacity: 0.6;
       cursor: not-allowed;
     }
-
+    
     .btn-success::before {
       content: '';
       position: absolute;
@@ -284,10 +284,10 @@
       transform: translate(-50%, -50%);
       transition: width 0.6s, height 0.6s;
     }
-
+    
     .btn-success:hover:not(:disabled)::before {
-      width: 300px;
-      height: 300px;
+        width: 300px;
+        height: 300px;
     }
 
     .btn-spinner {
@@ -736,7 +736,6 @@
                <span>✓</span>
                 <span>Resolve</span>
             </button>
-
           </td>
         </tr>
       `;
@@ -754,59 +753,32 @@
       reader.onerror = error => reject(error);
     });
   }
+  
+  // ✅ This function is now in the global scope, so it's accessible to onclick attributes.
+  function resolveTicket(event, id) {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.innerHTML = '<span class="btn-spinner"></span>'; // Show spinner on resolve button
+      
+      fetch(webAppURL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({action: "resolve", id: id}),
+        headers: { "Content-Type": "application/json" }
+      });
 
+      showToast("✓ Ticket resolved successfully!");
+      
+      // Refresh the list after a short delay to allow the backend to process
+      setTimeout(() => {
+        loadTickets();
+      }, 1500);
+  }
+
+  // Event listener for the form submission
   document.getElementById("ticketForm").addEventListener("submit", async function(e) {
     e.preventDefault();
     
-    const submitBtn = document.getElementById("submitBtn");
-    const originalText = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span>⏳</span><span>Submitting...</span>';
-    
-    try {
-      const ticketData = {
-        action: "add",
-        name: document.getElementById("username").value.trim(),
-        raisedFor: document.getElementById("raisedFor").value.trim(),
-        department: document.getElementById("department").value,
-        issue: document.getElementById("issue").value.trim(),
-      };
-
-      const fileInput = document.getElementById('fileUpload');
-      if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        ticketData.fileData = await fileToBase64(file);
-        ticketData.fileName = file.name;
-        ticketData.mimeType = file.type;
-      }
-      
-    // Resolve Ticket
-    // ... बाकी फंक्शन (showToast, formatTime, आदि) यहाँ रहेंगे ...
-
-// ✅ resolveTicket फंक्शन को बाहर निकालें
-function resolveTicket(event, id) { // event को भी पैरामीटर में लेना अच्छी आदत है
-  const button = event.currentTarget;
-  button.disabled = true; // बटन को डिसेबल करें
-  button.innerHTML = '<span class="btn-spinner"></span>'; // स्पिनर दिखाएँ
-
-  fetch(webAppURL, {
-    method: "POST",
-    mode: "no-cors", // Note: 'no-cors' is problematic, see below
-    body: JSON.stringify({ action: "resolve", id: id }),
-    headers: { "Content-Type": "application/json" }
-  });
-
-  showToast("✓ Ticket resolved successfully!");
-
-  setTimeout(() => {
-    loadTickets();
-  }, 1000); // 1 सेकंड बाद लिस्ट रिफ्रेश करें
-}
-
-// फॉर्म सबमिशन का इवेंट लिस्नर
-document.getElementById("ticketForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-
     const submitBtn = document.getElementById("submitBtn");
     const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
@@ -841,24 +813,23 @@ document.getElementById("ticketForm").addEventListener("submit", async function(
       
       setTimeout(() => {
         loadTickets();
-      }, 1000);
+      }, 1500); // Refresh list after 1.5 seconds
 
     } catch (error) {
-        console.error('Submission failed:', error);
-        showToast('❌ Failed to raise ticket.'); // एरर होने पर मैसेज
+        console.error("Submission failed:", error);
+        showToast("❌ Error submitting ticket. Please try again.");
     } finally {
-        // ✅ यह ज़रूरी है ताकि एरर आने पर बटन ठीक हो जाए
+        // ✅ This block ensures the button is always reset, even if an error occurs.
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
     }
-});
+  });
 
+  // ✅ Initial load when the page is ready.
+  document.addEventListener('DOMContentLoaded', loadTickets);
 
-// ✅ पेज लोड होते ही टिकट लोड करें
-document.addEventListener('DOMContentLoaded', (event) => {
-    loadTickets();
-});
-
-
-// ✅ ऑटो-रिफ्रेश के लिए setInterval को भी बाहर रखें
-setInterval(loadTickets, 30000);
+  // ✅ Auto-refresh every 30 seconds.
+  setInterval(loadTickets, 30000);
+</script>
+</body>
+</html>
