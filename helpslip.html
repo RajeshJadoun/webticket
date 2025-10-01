@@ -29,15 +29,38 @@
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
       --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--gradient-1);
       min-height: 100vh;
       padding: 2rem 1rem;
       line-height: 1.6;
       color: var(--text-primary);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: backgroundMove 20s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes backgroundMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
     }
 
     .container {
@@ -47,6 +70,9 @@
       border-radius: 20px;
       box-shadow: var(--shadow-xl);
       overflow: hidden;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(10px);
     }
 
     .header {
@@ -225,11 +251,46 @@
       color: white;
       padding: 0.5rem 1rem;
       font-size: 0.875rem;
+      position: relative;
+      overflow: hidden;
     }
 
-    .btn-success:hover {
+    .btn-success:hover:not(:disabled) {
       background: var(--success-dark);
       transform: translateY(-1px);
+    }
+
+    .btn-success:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-success::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .btn-success:hover:not(:disabled)::before {
+      width: 300px;
+      height: 300px;
+    }
+
+    .btn-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
     }
 
     .section-header {
@@ -736,6 +797,13 @@
   function resolveTicket(id) {
     if (!id) return;
     
+    const button = event.target.closest('button');
+    if (!button || button.disabled) return;
+    
+    const originalContent = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="btn-spinner"></span><span>Resolving...</span>';
+    
     fetch(webAppURL, {
       method: "POST",
       mode: "no-cors",
@@ -744,13 +812,27 @@
     })
     .then(() => {
       showToast("Ticket resolved successfully!");
-      setTimeout(() => {
-        loadTickets();
-      }, 1000);
+      
+      const row = button.closest('tr');
+      if (row) {
+        row.style.transition = 'all 0.3s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(100px)';
+        
+        setTimeout(() => {
+          loadTickets();
+        }, 300);
+      } else {
+        setTimeout(() => {
+          loadTickets();
+        }, 1000);
+      }
     })
     .catch(err => {
       console.error('Error resolving ticket:', err);
       showToast("Failed to resolve ticket. Please try again.");
+      button.disabled = false;
+      button.innerHTML = originalContent;
     });
   }
 
