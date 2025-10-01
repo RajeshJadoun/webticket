@@ -626,29 +626,23 @@
         timestamp: new Date().toISOString()
       };
 
-      fetch(webAppURL, {
+     fetch(webAppURL, {
         method: "POST",
-        method: "no-cors",
-        body: JSON.stringify(ticketData)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success') {
-          showToast("✓ Ticket raised successfully!");
-          document.getElementById("ticketForm").reset();
-          document.getElementById('fileName').style.display = 'none';
-          setTimeout(loadTickets, 500);
-        } else {
-          showToast("Failed to raise ticket.", "error");
-        }
-      })
-      .catch(err => {
-        showToast("An error occurred. Check the console for details.", "error");
-        console.error(err);
+        mode: "no-cors",
+        body: JSON.stringify(ticketData),
+        headers: { "Content-Type": "application/json" }
       });
+
+      showToast("✓ Ticket raised successfully!");
+      document.getElementById("ticketForm").reset();
+      
+      setTimeout(() => {
+        loadTickets();
+      }, 1000);
     });
 
-   function resolveTicket(id) {
+    // Resolve Ticket
+    function resolveTicket(id) {
       fetch(webAppURL, {
         method: "POST",
         mode: "no-cors",
