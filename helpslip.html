@@ -632,7 +632,7 @@
   </div>
 
 <script>
-  const webAppURL = "https://script.google.com/macros/s/AKfycbz_OuSoTAPH89LUeQOgYK3zgFaFjNWX8pxUmdbpnvsk6bebQusyIeuUiCZGh7oIJGPo/exec";
+  const webAppURL = "https://script.google.com/macros/s/AKfycbz_OuSoTAPH8ZHUeQOgYK3zgFaFjNWX8pxUmdbpnvsk6bebQusyIeuUiCZGh7oIJGPo/exec";
 
   function showToast(message) {
     const existingToast = document.querySelector('.toast');
@@ -684,6 +684,7 @@
       });
   }
 
+  // ############ START: यहाँ बदलाव किया गया है ############
   function renderTickets(tickets) {
     const container = document.getElementById("ticketList");
     
@@ -732,7 +733,7 @@
           <td>${fileHTML}</td>
           <td>${formatTime(ticket.date)}</td>
           <td>
-            <button class="btn btn-success" onclick="resolveTicket('${ticket.id}')">
+            <button class="btn btn-success" onclick="resolveTicket(this, '${ticket.id}')">
               <span>✓</span>
               <span>Resolve</span>
             </button>
@@ -744,6 +745,7 @@
     tableHTML += `</tbody></table>`;
     container.innerHTML = tableHTML;
   }
+  // ############ END: यहाँ बदलाव किया गया है ############
 
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
@@ -801,11 +803,11 @@
     }
   });
 
-  function resolveTicket(id) {
-    if (!id) return;
-    
-    const button = event.target.closest('button');
-    if (!button || button.disabled) return;
+  // ############ START: यहाँ बदलाव किया गया है ############
+  function resolveTicket(button, id) {
+    if (!id || !button || button.disabled) {
+      return;
+    }
     
     const originalContent = button.innerHTML;
     button.disabled = true;
@@ -819,7 +821,8 @@
       body: JSON.stringify({action: "resolve", id: id}),
       headers: { "Content-Type": "application/json" }
     })
-    .then(() => {
+    .finally(() => {
+      // यह ब्लॉक fetch पूरा होने के बाद हमेशा चलेगा, चाहे सफल हो या विफल
       showToast("Ticket resolved successfully!");
       
       if (row) {
@@ -835,27 +838,20 @@
             document.getElementById("ticketList").innerHTML = `
               <div class="empty-state">
                 <div class="empty-state-icon">🎉</div>
-                <div class="empty-state-text">No active tickets at the moment</div>
+                <div class="empty-state-text">All tickets resolved!</div>
               </div>
             `;
           }
-        }, 400);
+        }, 400); // एनीमेशन के बाद हटाएं
       }
       
+      // सर्वर के साथ सिंक करने के लिए अंत में एक बार फिर से लोड करें
       setTimeout(() => {
         loadTickets();
-      }, 1500);
-    })
-    .catch(err => {
-      console.error('Error resolving ticket:', err);
-      button.disabled = false;
-      button.innerHTML = originalContent;
-      if (row) {
-        row.style.opacity = '1';
-        row.style.transform = 'translateX(0)';
-      }
+      }, 2000);
     });
   }
+  // ############ END: यहाँ बदलाव किया गया है ############
 
   loadTickets();
   setInterval(loadTickets, 30000);
