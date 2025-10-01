@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Help Desk Tickets | Support Management</title>
   <style>
-    /* CSS code remains the same... */
     * {
       margin: 0;
       padding: 0;
@@ -464,24 +463,10 @@
       border-left: 4px solid var(--success);
     }
 
-    @keyframes slideIn {
-      from {
-        transform: translateX(400px);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
+     .toast.error {
+      border-left-color: var(--danger);
     }
-
-    @keyframes slideOut {
-      to {
-        transform: translateX(400px);
-        opacity: 0;
-      }
-    }
-
+    
     .toast-icon {
       width: 24px;
       height: 24px;
@@ -493,6 +478,10 @@
       justify-content: center;
       font-size: 0.875rem;
       flex-shrink: 0;
+    }
+    
+    .toast.error .toast-icon {
+      background: var(--danger);
     }
 
     @media (max-width: 768px) {
@@ -630,15 +619,17 @@
   </div>
 
 <script>
-  const webAppURL = "https://script.google.com/macros/s/AKfycbxoZfVzn9BhDgeafpUN3HUIx_3oUMw8tpTucp5X9j24fLJbUrSOQncSwhpoNFwHkVGB/exec";
+  // ✅ Replace this URL if you redeploy your Google Apps Script
+  const webAppURL = "https://script.google.com/macros/s/AKfycbz_OuSoTAPH89LUeQOgYK3zgFaFjNWX8pxUmdbpnvsk6bebQusyIeuUiCZGh7oIJGPo/exec";
 
-  function showToast(message) {
+  function showToast(message, isError = false) {
     const existingToast = document.querySelector('.toast');
     if (existingToast) existingToast.remove();
 
     const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerHTML = `<div class="toast-icon">✓</div><div>${message}</div>`;
+    toast.className = `toast ${isError ? 'error' : ''}`;
+    const icon = isError ? '❌' : '✓';
+    toast.innerHTML = `<div class="toast-icon">${icon}</div><div>${message}</div>`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   }
@@ -658,7 +649,7 @@
   function loadTickets() {
     fetch(webAppURL)
       .then(res => {
-        if (!res.ok) throw new Error('Network response was not ok');
+        if (!res.ok) throw new Error(`Network response was not ok (${res.status})`);
         return res.json();
       })
       .then(data => renderTickets(data))
@@ -690,13 +681,11 @@
         </tr></thead><tbody>`;
 
     tickets.forEach(ticket => {
-      // Handle both single file (old format) and multiple files (new format)
       let fileHTML = '<span class="no-file">No attachment</span>';
       if (ticket.fileUrl) {
-          // New: URLs are comma-separated
-          const urls = ticket.fileUrl.split(', ');
+          const urls = ticket.fileUrl.split(',').map(url => url.trim());
           fileHTML = urls.map((url, index) => 
-            `<a href="${url}" target="_blank" rel="noopener noreferrer" class="file-link" style="margin-right: 5px;">
+            `<a href="${url}" target="_blank" rel="noopener noreferrer" class="file-link" style="margin-right: 8px; display: inline-block;">
                <span>📎</span>
                <span>File ${index + 1}</span>
              </a>`
@@ -733,20 +722,40 @@
     });
   }
   
-  function resolveTicket(event, id) {
+  // ✅ UPDATED: Robust resolveTicket function with proper error handling
+  async function resolveTicket(event, id) {
       const button = event.currentTarget;
+      const originalButtonText = button.innerHTML;
       button.disabled = true;
       button.innerHTML = '<span class="btn-spinner"></span>';
       
-      fetch(webAppURL, {
-        method: "POST", mode: "no-cors",
-        body: JSON.stringify({action: "resolve", id: id}),
-        headers: { "Content-Type": "application/json" }
-      });
-      showToast("✓ Ticket resolved successfully!");
-      setTimeout(() => { loadTickets(); }, 1500);
+      try {
+          const response = await fetch(webAppURL, {
+              method: "POST",
+              body: JSON.stringify({ action: "resolve", id: id }),
+              headers: { "Content-Type": "application/json" },
+              redirect: "follow" // Important for Google Apps Script
+          });
+
+          if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
+          
+          const result = await response.json();
+
+          if (result.status === "resolved") {
+              showToast("✓ Ticket resolved successfully!");
+              setTimeout(() => { loadTickets(); }, 500);
+          } else {
+              throw new Error(result.message || "Unknown error from backend.");
+          }
+      } catch (error) {
+          console.error("Resolve error:", error);
+          showToast(`Error: ${error.message}`, true);
+          button.disabled = false;
+          button.innerHTML = originalButtonText;
+      }
   }
 
+  // ✅ UPDATED: Robust form submission with proper error handling
   document.getElementById("ticketForm").addEventListener("submit", async function(e) {
     e.preventDefault();
     
@@ -764,36 +773,41 @@
         issue: document.getElementById("issue").value.trim(),
       };
 
-      // ✅ CHANGE 2: Updated logic to handle multiple files
       const fileInput = document.getElementById('fileUpload');
       if (fileInput.files.length > 0) {
-        // Create an array of promises for file conversion
         const filePromises = Array.from(fileInput.files).map(async (file) => {
-          const fileData = await fileToBase64(file);
+          const fileDataUrl = await fileToBase64(file);
           return {
-            fileData: fileData.split(',')[1], // Send only base64 content
+            fileData: fileDataUrl.split(',')[1],
             fileName: file.name,
             mimeType: file.type
           };
         });
-
-        // Wait for all files to be converted
         ticketData.files = await Promise.all(filePromises);
       }
       
-      fetch(webAppURL, {
-        method: "POST", mode: "no-cors",
+      const response = await fetch(webAppURL, {
+        method: "POST",
         body: JSON.stringify(ticketData),
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        redirect: "follow"
       });
 
-      showToast("✓ Ticket raised successfully!");
-      document.getElementById("ticketForm").reset();
-      setTimeout(() => { loadTickets(); }, 1500);
+      if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
+
+      const result = await response.json();
+
+      if (result.status === "success") {
+        showToast("✓ Ticket raised successfully!");
+        document.getElementById("ticketForm").reset();
+        setTimeout(() => { loadTickets(); }, 1000);
+      } else {
+        throw new Error(result.message || "Failed to submit ticket.");
+      }
 
     } catch (error) {
         console.error("Submission failed:", error);
-        showToast("❌ Error submitting ticket. Please try again.");
+        showToast(`Submission Error: ${error.message}`, true);
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
