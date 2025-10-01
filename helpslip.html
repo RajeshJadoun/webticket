@@ -193,6 +193,13 @@
       background-position: right 0.75rem center;
       background-size: 1.25rem;
       padding-right: 2.5rem;
+      background-color: var(--bg-primary);
+    }
+
+    select option {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 0.75rem;
     }
 
     input[type="file"] {
@@ -804,6 +811,8 @@
     button.disabled = true;
     button.innerHTML = '<span class="btn-spinner"></span><span>Resolving...</span>';
     
+    const row = button.closest('tr');
+    
     fetch(webAppURL, {
       method: "POST",
       mode: "no-cors",
@@ -813,26 +822,38 @@
     .then(() => {
       showToast("Ticket resolved successfully!");
       
-      const row = button.closest('tr');
       if (row) {
-        row.style.transition = 'all 0.3s ease';
+        row.style.transition = 'all 0.4s ease';
         row.style.opacity = '0';
         row.style.transform = 'translateX(100px)';
         
         setTimeout(() => {
-          loadTickets();
-        }, 300);
-      } else {
-        setTimeout(() => {
-          loadTickets();
-        }, 1000);
+          row.remove();
+          
+          const tbody = document.querySelector('#ticketList tbody');
+          if (tbody && tbody.children.length === 0) {
+            document.getElementById("ticketList").innerHTML = `
+              <div class="empty-state">
+                <div class="empty-state-icon">🎉</div>
+                <div class="empty-state-text">No active tickets at the moment</div>
+              </div>
+            `;
+          }
+        }, 400);
       }
+      
+      setTimeout(() => {
+        loadTickets();
+      }, 1500);
     })
     .catch(err => {
       console.error('Error resolving ticket:', err);
-      showToast("Failed to resolve ticket. Please try again.");
       button.disabled = false;
       button.innerHTML = originalContent;
+      if (row) {
+        row.style.opacity = '1';
+        row.style.transform = 'translateX(0)';
+      }
     });
   }
 
