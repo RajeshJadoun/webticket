@@ -816,7 +816,7 @@
     fetch(webAppURL, {
       method: "POST",
       mode: "no-cors",
-      body: JSON.stringify({action: "resolve", id: id}),
+      body: JSON.stringify({action: "Resolve", id: id}),
       headers: { "Content-Type": "application/json" }
     })
     .then(() => {
@@ -839,7 +839,7 @@
               </div>
             `;
           }
-        }, 400);
+        }, 40);
       }
       
       setTimeout(() => {
@@ -858,7 +858,7 @@
   }
 
   loadTickets();
-  setInterval(loadTickets, 30000);
+  setInterval(loadTickets, 3000);
 </script>
 </body>
 </html>
