@@ -732,10 +732,11 @@
           <td>${fileHTML}</td>
           <td>${formatTime(ticket.date)}</td>
           <td>
-            <button class="btn btn-success" onclick="resolveTicket('${ticket.id}', event)">
-              <span>✓</span>
-              <span>Resolve</span>
+              <button class="btn btn-success" onclick="resolveTicket(event, '${ticket.id}')">
+               <span>✓</span>
+                <span>Resolve</span>
             </button>
+
           </td>
         </tr>
       `;
@@ -801,61 +802,55 @@
     }
   });
 
-  function resolveTicket(id, event) {
-    if (!id) return;
-    
-    const button = event.target.closest('button');
-    if (!button || button.disabled) return;
-    
-    const originalContent = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<span class="btn-spinner"></span><span>Resolving...</span>';
-    
-    const row = document.getElementById(`ticket-row-${id}`);
-    
-    fetch(webAppURL, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({action: "Resolve", id: id}),
-      headers: { "Content-Type": "application/json" }
-    })
-    .then(() => {
-      showToast("Ticket resolved successfully!");
-      
-      if (row) {
-        row.style.transition = 'all 0.4s ease';
-        row.style.opacity = '0';
-        row.style.transform = 'translateX(100px)';
-        
-        setTimeout(() => {
-          row.remove();
-          
-          const tbody = document.querySelector('#ticketList tbody');
-          if (tbody && tbody.children.length === 0) {
-            document.getElementById("ticketList").innerHTML = `
-              <div class="empty-state">
-                <div class="empty-state-icon">🎉</div>
-                <div class="empty-state-text">No active tickets at the moment</div>
-              </div>
-            `;
-          }
-        }, 40);
-      }
-      
+ function resolveTicket(e, id) {
+  if (!id) return;
+
+  const button = e.currentTarget; // अब सही से बटन मिलेगा
+  if (!button || button.disabled) return;
+
+  const originalContent = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<span class="btn-spinner"></span><span>Resolving...</span>';
+
+  const row = button.closest('tr');
+
+  fetch(webAppURL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({action: "resolve", id: id}),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(() => {
+    showToast("Ticket resolved successfully!");
+    if (row) {
+      row.style.transition = 'all 0.4s ease';
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(100px)';
       setTimeout(() => {
-        loadTickets();
-      }, 1500);
-    })
-    .catch(err => {
-      console.error('Error resolving ticket:', err);
-      button.disabled = false;
-      button.innerHTML = originalContent;
-      if (row) {
-        row.style.opacity = '1';
-        row.style.transform = 'translateX(0)';
-      }
-    });
-  }
+        row.remove();
+        const tbody = document.querySelector('#ticketList tbody');
+        if (tbody && tbody.children.length === 0) {
+          document.getElementById("ticketList").innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">🎉</div>
+              <div class="empty-state-text">No active tickets at the moment</div>
+            </div>
+          `;
+        }
+      }, 400);
+    }
+    setTimeout(loadTickets, 1500);
+  })
+  .catch(err => {
+    console.error('Error resolving ticket:', err);
+    button.disabled = false;
+    button.innerHTML = originalContent;
+    if (row) {
+      row.style.opacity = '1';
+      row.style.transform = 'translateX(0)';
+    }
+  });
+}
 
   loadTickets();
   setInterval(loadTickets, 3000);
