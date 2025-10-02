@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help Desk Tickets</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🎫 Help Desk Ticket System</h1>
+    <p class="subtitle">Efficiently manage and track support tickets</p>
+
+    <div class="form-card">
+      <form id="ticketForm">
+        <div class="form-group">
+          <label>Raised By (Your Name) *</label>
+          <input type="text" id="raisedBy" placeholder="e.g. Rahul Kumar" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Raised For (Person Name) *</label>
+          <input type="text" id="raisedFor" placeholder="e.g. Priya Sharma" required>
+        </div>
+
+        <div class="form-group">
+          <label>Assigned To (Support Person) *</label>
+          <input type="text" id="assignedTo" placeholder="e.g. IT Support Team" required>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Issue Description *</label>
+          <textarea id="issue" placeholder="Describe your issue in detail..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Attach File (Optional)</label>
+          <div class="file-input-wrapper">
+            <input type="file" id="fileAttachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt,.xls,.xlsx">
+            <label for="fileAttachment" class="file-input-label">
+              📎 Choose File
+            </label>
+          </div>
+          <div id="fileName" class="file-name"></div>
+        </div>
+
+        <div class="button-group">
+          <button type="submit">🚀 Raise Ticket</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-number" id="activeCount">0</div>
+        <div class="stat-label">Active Tickets</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="totalCount">0</div>
+        <div class="stat-label">Total Raised</div>
+      </div>
+    </div>
+
+    <h2>
+      <span class="status-badge status-active">Active</span>
+      Current Tickets
+    </h2>
+    
+    <div class="table-container">
+      <div id="ticketList">
+        <div class="loading">Loading tickets...</div>
+      </div>
+    </div>
+  </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
