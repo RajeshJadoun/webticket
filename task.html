@@ -6,144 +6,331 @@
     <title>ToDo List App</title>
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            padding: 20px;
         }
 
         #auth-container, #app-container {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .form-container h2 {
             text-align: center;
-            color: #333;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
         }
 
         input[type="text"], input[type="password"] {
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         button {
             width: 100%;
-            padding: 10px;
+            padding: 15px;
             border: none;
-            background-color: #5cb85c;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 4px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         button:hover {
-            background-color: #4cae4c;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
         }
 
         .form-container p {
             text-align: center;
-            margin-top: 15px;
+            margin-top: 20px;
+            color: #666;
         }
         
         a {
-            color: #5cb85c;
+            color: #667eea;
             cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: #764ba2;
+        }
+
+        #app-container {
+            max-width: 600px;
         }
 
         #app-container header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        #app-container h1 {
+            color: #667eea;
+            font-size: 26px;
+        }
+
+        #user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #welcome-message {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
         }
 
         #logout-btn {
             width: auto;
-            background-color: #d9534f;
-            padding: 5px 10px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 8px 20px;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        #logout-btn:hover {
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
         }
 
         .input-container {
             display: flex;
-            margin: 20px 0;
+            gap: 10px;
+            margin-bottom: 30px;
         }
 
         #task-input {
             flex-grow: 1;
+            margin-bottom: 0;
         }
         
         .input-container button {
-            width: 80px;
-            margin-left: 10px;
+            width: 100px;
+            margin: 0;
         }
 
         ul {
             list-style-type: none;
             padding: 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        ul::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ul::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ul::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
         }
 
         li {
-            background: #fff;
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
+            background: white;
+            padding: 18px;
+            margin-bottom: 12px;
+            border-radius: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        li:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
         }
 
         li.completed {
             text-decoration: line-through;
-            color: #888;
+            color: #999;
+            background: #f8f9fa;
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
         }
 
         .task-actions button {
             width: auto;
-            padding: 5px 8px;
-            margin-left: 5px;
-            font-size: 12px;
+            padding: 8px 16px;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
 
         .delete-btn {
-            background-color: #d9534f;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+        }
+
+        .delete-btn:hover {
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.5);
         }
 
         #message-area {
             text-align: center;
-            margin-top: 10px;
-            color: red;
-            min-height: 20px; /* To prevent layout shift */
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            min-height: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            border: 1px solid #cfc;
         }
 
         .loader {
-            border: 5px solid #f3f3f3;
+            border: 4px solid #f3f3f3;
             border-radius: 50%;
-            border-top: 5px solid #3498db;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            position: absolute;
+            border-top: 4px solid #667eea;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            z-index: 1000;
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 500px) {
+            #auth-container, #app-container {
+                padding: 25px;
+            }
+
+            .form-container h2 {
+                font-size: 24px;
+            }
+
+            #app-container h1 {
+                font-size: 20px;
+            }
+
+            #user-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .input-container {
+                flex-direction: column;
+            }
+
+            .input-container button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -151,40 +338,39 @@
 
     <div id="auth-container">
         <div id="login-form" class="form-container">
-            <h2>लॉगिन करें</h2>
-            <input type="text" id="login-username" placeholder="यूजरनेम" required>
-            <input type="password" id="login-password" placeholder="पासवर्ड" required>
-            <button onclick="loginUser()">लॉगिन</button>
-            <p>अकाउंट नहीं है? <a href="#" onclick="toggleForms()">साइनअप करें</a></p>
+            <h2>Login</h2>
+            <input type="text" id="login-username" placeholder="Username" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button onclick="loginUser()">Login</button>
+            <p>Don't have an account? <a href="#" onclick="toggleForms()">Sign Up</a></p>
         </div>
 
         <div id="signup-form" class="form-container" style="display:none;">
-            <h2>नया अकाउंट बनाएं</h2>
-            <input type="text" id="signup-username" placeholder="यूजरनेम चुनें" required>
-            <input type="password" id="signup-password" placeholder="पासवर्ड बनाएं" required>
-            <button onclick="signupUser()">साइनअप</button>
-            <p>पहले से अकाउंट है? <a href="#" onclick="toggleForms()">लॉगिन करें</a></p>
+            <h2>Create New Account</h2>
+            <input type="text" id="signup-username" placeholder="Choose Username" required>
+            <input type="password" id="signup-password" placeholder="Create Password" required>
+            <button onclick="signupUser()">Sign Up</button>
+            <p>Already have an account? <a href="#" onclick="toggleForms()">Login</a></p>
         </div>
     </div>
 
     <div id="app-container" style="display:none;">
         <header>
-            <h1>मेरी टू-डू लिस्ट</h1>
+            <h1>My To-Do List</h1>
             <div id="user-info">
                 <span id="welcome-message"></span>
-                <button id="logout-btn" onclick="logout()">लॉगआउट</button>
+                <button id="logout-btn" onclick="logout()">Logout</button>
             </div>
         </header>
         <div class="input-container">
-            <input type="text" id="task-input" placeholder="नया टास्क जोड़ें...">
-            <button onclick="addTask()">जोड़ें</button>
+            <input type="text" id="task-input" placeholder="Add new task..." onkeypress="if(event.key==='Enter') addTask()">
+            <button onclick="addTask()">Add</button>
         </div>
-        <ul id="task-list">
-            </ul>
+        <ul id="task-list"></ul>
+        <p id="message-area"></p>
     </div>
     
     <div id="loader" class="loader" style="display:none;"></div>
-    <p id="message-area"></p>
 
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnYFTC7ChgfH6tssgleZMWdaLvX8TQxCrqDdEPXM1tLqeqHDOS3pFKbtFWOlvjf8-K5Q/exec";
@@ -211,6 +397,7 @@
             loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
             signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
             messageArea.textContent = '';
+            messageArea.className = '';
         }
 
         function showLoader(show) {
@@ -219,10 +406,9 @@
 
         function showMessage(message, isError = false) {
             messageArea.textContent = message;
-            messageArea.style.color = isError ? 'red' : 'green';
+            messageArea.className = isError ? 'error-message' : 'success-message';
         }
 
-        // Generic function to send data without waiting for a response
         function postData(data) {
             fetch(SCRIPT_URL, {
                 method: 'POST',
@@ -236,7 +422,7 @@
             const username = document.getElementById('signup-username').value.trim();
             const password = document.getElementById('signup-password').value.trim();
             if (!username || !password) {
-                showMessage('यूजरनेम और पासवर्ड दोनों भरें।', true);
+                showMessage('Please fill both username and password.', true);
                 return;
             }
             
@@ -244,21 +430,19 @@
             postData({ action: 'signup', username, password });
             showLoader(false);
             
-            showMessage('साइनअप रिक्वेस्ट भेज दी गई है। अब आप लॉगिन कर सकते हैं।');
-            toggleForms();
+            showMessage('Signup request sent. You can now login.');
+            setTimeout(() => toggleForms(), 1500);
         }
 
         function loginUser() {
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value.trim();
             if (!username || !password) {
-                showMessage('यूजरनेम और पासवर्ड दोनों भरें।', true);
+                showMessage('Please fill both username and password.', true);
                 return;
             }
             
-            // With 'no-cors', we can't check the response.
-            // We just assume login is correct and try to show the app.
-            postData({ action: 'login', username, password }); // We still send the password for logging/security purposes if you want to track attempts.
+            postData({ action: 'login', username, password });
             localStorage.setItem('loggedInUser', username);
             showAppView(username);
         }
@@ -272,13 +456,15 @@
             authContainer.style.display = 'block';
             appContainer.style.display = 'none';
             messageArea.textContent = '';
+            messageArea.className = '';
         }
 
         function showAppView(username) {
             authContainer.style.display = 'none';
             appContainer.style.display = 'block';
             messageArea.textContent = '';
-            document.getElementById('welcome-message').textContent = `स्वागत है, ${username}!`;
+            messageArea.className = '';
+            document.getElementById('welcome-message').textContent = `Welcome, ${username}!`;
             loadTasks();
         }
 
@@ -289,7 +475,6 @@
             showLoader(true);
             taskList.innerHTML = '';
             try {
-                // GET requests are not affected by CORS issues in the same way
                 const response = await fetch(`${SCRIPT_URL}?username=${username}`);
                 const tasks = await response.json();
                 showLoader(false);
@@ -300,16 +485,27 @@
                 }
 
                 if (tasks.length === 0) {
-                     showMessage("कोई टास्क नहीं मिला। एक नया टास्क जोड़ें!", false);
+                    taskList.innerHTML = `
+                        <div class="empty-state">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <p>No tasks found.<br>Add a new task to get started!</p>
+                        </div>
+                    `;
+                    return;
                 }
 
                 tasks.forEach(task => {
                     const li = document.createElement('li');
-                    li.textContent = task.taskText;
                     li.dataset.taskId = task.taskID;
                     if (task.status === 'completed') {
                         li.classList.add('completed');
                     }
+
+                    const taskText = document.createElement('span');
+                    taskText.className = 'task-text';
+                    taskText.textContent = task.taskText;
 
                     const actionsDiv = document.createElement('div');
                     actionsDiv.className = 'task-actions';
@@ -325,6 +521,7 @@
 
                     actionsDiv.appendChild(toggleBtn);
                     actionsDiv.appendChild(deleteBtn);
+                    li.appendChild(taskText);
                     li.appendChild(actionsDiv);
                     taskList.appendChild(li);
                 });
@@ -343,10 +540,9 @@
             
             taskInput.value = '';
             showMessage('टास्क जोड़ा जा रहा है...', false);
-            // Give Google Sheets a moment to update before reloading
             setTimeout(() => {
                 loadTasks();
-            }, 1500); // 1.5 seconds delay
+            }, 1500);
         }
 
         function updateTaskStatus(taskID, newStatus) {
