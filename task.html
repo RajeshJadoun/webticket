@@ -228,17 +228,12 @@
                 // Apps Script can be slow. We'll use a fetch with a redirect to get the response.
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
+                    mode: 'no-cors',
                     redirect: 'follow', // Important
                     body: JSON.stringify(data),
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Use text/plain for better compatibility
                 });
-                return await response.json();
-            } catch (e) {
-                console.error("Error during POST request:", e);
-                return { status: 'error', message: 'नेटवर्क से कनेक्ट करने में विफल। कृपया बाद में प्रयास करें।' };
-            }
-        }
-
+        
         async function signupUser() {
             const username = document.getElementById('signup-username').value.trim();
             const password = document.getElementById('signup-password').value.trim();
