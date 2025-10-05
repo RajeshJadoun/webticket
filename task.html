@@ -1,196 +1,380 @@
-// अपना डिप्लॉय किया हुआ वेब ऐप URL यहाँ पेस्ट करें
-const SCRIPT_URL = "YOUR_WEB_APP_URL"; 
-
-const authContainer = document.getElementById('auth-container');
-const appContainer = document.getElementById('app-container');
-const loginForm = document.getElementById('login-form');
-const signupForm = document.getElementById('signup-form');
-const taskList = document.getElementById('task-list');
-const taskInput = document.getElementById('task-input');
-const messageArea = document.getElementById('message-area');
-const loader = document.getElementById('loader');
-
-// जब पेज लोड हो, तो चेक करें कि यूजर पहले से लॉगिन है या नहीं
-document.addEventListener('DOMContentLoaded', () => {
-    const loggedInUser = localStorage.getItem('loggedInUser');
-    if (loggedInUser) {
-        showAppView(loggedInUser);
-    } else {
-        showAuthView();
-    }
-});
-
-function toggleForms() {
-    loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
-    signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
-    messageArea.textContent = '';
-}
-
-function showLoader(show) {
-    loader.style.display = show ? 'block' : 'none';
-}
-
-function showMessage(message, isError = false) {
-    messageArea.textContent = message;
-    messageArea.style.color = isError ? 'red' : 'green';
-}
-
-// नया यूजर बनाने के लिए
-async function signupUser() {
-    const username = document.getElementById('signup-username').value.trim();
-    const password = document.getElementById('signup-password').value.trim();
-    if (!username || !password) {
-        showMessage('यूजरनेम और पासवर्ड दोनों भरें।', true);
-        return;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToDo List App</title>
     
-    showLoader(true);
-    const response = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'signup', username, password }),
-        headers: { 'Content-Type': 'application/json' },
-        mode: 'no-cors', // Important for Apps Script POST
-    });
-    // no-cors mode doesn't allow reading response, so we just assume it worked and give feedback
-    showLoader(false);
-    showMessage('साइनअप सफल! अब आप लॉगिन कर सकते हैं।');
-    toggleForms();
-}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
 
-// यूजर को लॉगिन करने के लिए
-async function loginUser() {
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value.trim();
-    if (!username || !password) {
-        showMessage('यूजरनेम और पासवर्ड दोनों भरें।', true);
-        return;
-    }
+        #auth-container, #app-container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
 
-    showLoader(true);
-    // For login, we can use a redirect trick to read the response or just trust it.
-    // Here we'll do a proper POST and handle CORS in Apps Script. For simplicity let's do a different fetch:
-    try {
-        const res = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'login', username, password }),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Use text/plain for some Apps Script scenarios
-            redirect: 'follow',
+        .form-container h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background-color: #5cb85c;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #4cae4c;
+        }
+
+        .form-container p {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        a {
+            color: #5cb85c;
+            cursor: pointer;
+        }
+
+        #app-container header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        #logout-btn {
+            width: auto;
+            background-color: #d9534f;
+            padding: 5px 10px;
+        }
+
+        .input-container {
+            display: flex;
+            margin: 20px 0;
+        }
+
+        #task-input {
+            flex-grow: 1;
+        }
+        
+        .input-container button {
+            width: 80px;
+            margin-left: 10px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background: #fff;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        li.completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+
+        .task-actions button {
+            width: auto;
+            padding: 5px 8px;
+            margin-left: 5px;
+            font-size: 12px;
+        }
+
+        .delete-btn {
+            background-color: #d9534f;
+        }
+
+        #message-area {
+            text-align: center;
+            margin-top: 10px;
+            color: red;
+            min-height: 20px; /* To prevent layout shift */
+        }
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 5px solid #3498db;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="auth-container">
+        <div id="login-form" class="form-container">
+            <h2>लॉगिन करें</h2>
+            <input type="text" id="login-username" placeholder="यूजरनेम" required>
+            <input type="password" id="login-password" placeholder="पासवर्ड" required>
+            <button onclick="loginUser()">लॉगिन</button>
+            <p>अकाउंट नहीं है? <a href="#" onclick="toggleForms()">साइनअप करें</a></p>
+        </div>
+
+        <div id="signup-form" class="form-container" style="display:none;">
+            <h2>नया अकाउंट बनाएं</h2>
+            <input type="text" id="signup-username" placeholder="यूजरनेम चुनें" required>
+            <input type="password" id="signup-password" placeholder="पासवर्ड बनाएं" required>
+            <button onclick="signupUser()">साइनअप</button>
+            <p>पहले से अकाउंट है? <a href="#" onclick="toggleForms()">लॉगिन करें</a></p>
+        </div>
+    </div>
+
+    <div id="app-container" style="display:none;">
+        <header>
+            <h1>मेरी टू-डू लिस्ट</h1>
+            <div id="user-info">
+                <span id="welcome-message"></span>
+                <button id="logout-btn" onclick="logout()">लॉगआउट</button>
+            </div>
+        </header>
+        <div class="input-container">
+            <input type="text" id="task-input" placeholder="नया टास्क जोड़ें...">
+            <button onclick="addTask()">जोड़ें</button>
+        </div>
+        <ul id="task-list">
+            </ul>
+    </div>
+    
+    <div id="loader" class="loader" style="display:none;"></div>
+    <p id="message-area"></p>
+
+    <script>
+        // ⚠️ यहाँ अपना वेब ऐप URL पेस्ट करें
+        const SCRIPT_URL = "YOUR_WEB_APP_URL";
+
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const taskList = document.getElementById('task-list');
+        const taskInput = document.getElementById('task-input');
+        const messageArea = document.getElementById('message-area');
+        const loader = document.getElementById('loader');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            if (loggedInUser) {
+                showAppView(loggedInUser);
+            } else {
+                showAuthView();
+            }
         });
-        const result = await res.json();
-        showLoader(false);
-        if (result.status === 'success') {
-            localStorage.setItem('loggedInUser', username);
-            showAppView(username);
-        } else {
-            showMessage(result.message, true);
-        }
-    } catch(e) {
-        showLoader(false);
-        showMessage("लॉगिन में कोई समस्या हुई।", true)
-    }
-}
 
-// लॉगआउट
-function logout() {
-    localStorage.removeItem('loggedInUser');
-    showAuthView();
-}
-
-function showAuthView() {
-    authContainer.style.display = 'block';
-    appContainer.style.display = 'none';
-}
-
-function showAppView(username) {
-    authContainer.style.display = 'none';
-    appContainer.style.display = 'block';
-    document.getElementById('welcome-message').textContent = `स्वागत है, ${username}!`;
-    loadTasks();
-}
-
-// यूजर के सभी टास्क लोड करें
-async function loadTasks() {
-    const username = localStorage.getItem('loggedInUser');
-    if (!username) return;
-
-    showLoader(true);
-    taskList.innerHTML = ''; // पुरानी लिस्ट साफ़ करें
-    try {
-        const response = await fetch(`${SCRIPT_URL}?username=${username}`);
-        const tasks = await response.json();
-        showLoader(false);
-
-        if(tasks.status === 'error'){
-            showMessage(tasks.message, true);
-            return;
+        function toggleForms() {
+            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+            signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
+            messageArea.textContent = '';
         }
 
-        tasks.forEach(task => {
-            const li = document.createElement('li');
-            li.textContent = task.taskText;
-            li.dataset.taskId = task.taskID;
-            if (task.status === 'completed') {
-                li.classList.add('completed');
+        function showLoader(show) {
+            loader.style.display = show ? 'block' : 'none';
+        }
+
+        function showMessage(message, isError = false) {
+            messageArea.textContent = message;
+            messageArea.style.color = isError ? 'red' : 'green';
+        }
+
+        async function postRequest(data) {
+            try {
+                // Apps Script can be slow. We'll use a fetch with a redirect to get the response.
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    redirect: 'follow', // Important
+                    body: JSON.stringify(data),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Use text/plain for better compatibility
+                });
+                return await response.json();
+            } catch (e) {
+                console.error("Error during POST request:", e);
+                return { status: 'error', message: 'नेटवर्क से कनेक्ट करने में विफल। कृपया बाद में प्रयास करें।' };
+            }
+        }
+
+        async function signupUser() {
+            const username = document.getElementById('signup-username').value.trim();
+            const password = document.getElementById('signup-password').value.trim();
+            if (!username || !password) {
+                showMessage('यूजरनेम और पासवर्ड दोनों भरें।', true);
+                return;
+            }
+            
+            showLoader(true);
+            const result = await postRequest({ action: 'signup', username, password });
+            showLoader(false);
+
+            if (result.status === 'success') {
+                showMessage('साइनअप सफल! अब आप लॉगिन कर सकते हैं।');
+                toggleForms();
+            } else {
+                showMessage(result.message, true);
+            }
+        }
+
+        async function loginUser() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+            if (!username || !password) {
+                showMessage('यूजरनेम और पासवर्ड दोनों भरें।', true);
+                return;
             }
 
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'task-actions';
+            showLoader(true);
+            const result = await postRequest({ action: 'login', username, password });
+            showLoader(false);
 
-            const toggleBtn = document.createElement('button');
-            toggleBtn.textContent = task.status === 'completed' ? 'Undo' : 'Complete';
-            toggleBtn.onclick = () => updateTaskStatus(task.taskID, task.status === 'completed' ? 'pending' : 'completed');
-            
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Delete';
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.onclick = () => deleteTask(task.taskID);
+            if (result.status === 'success') {
+                localStorage.setItem('loggedInUser', username);
+                showAppView(username);
+            } else {
+                showMessage(result.message, true);
+            }
+        }
 
-            actionsDiv.appendChild(toggleBtn);
-            actionsDiv.appendChild(deleteBtn);
-            li.appendChild(actionsDiv);
-            taskList.appendChild(li);
-        });
-    } catch (error) {
-        showLoader(false);
-        showMessage('टास्क लोड करने में विफल।', true);
-    }
-}
+        function logout() {
+            localStorage.removeItem('loggedInUser');
+            showAuthView();
+        }
 
-// नया टास्क जोड़ें
-async function addTask() {
-    const taskText = taskInput.value.trim();
-    if (taskText === '') return;
+        function showAuthView() {
+            authContainer.style.display = 'block';
+            appContainer.style.display = 'none';
+            messageArea.textContent = '';
+        }
 
-    const username = localStorage.getItem('loggedInUser');
-    showLoader(true);
-    await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'addTask', username, taskText }),
-        mode: 'no-cors'
-    });
-    // Assuming success due to no-cors
-    taskInput.value = '';
-    setTimeout(loadTasks, 1000); // Wait a second for sheet to update
-}
+        function showAppView(username) {
+            authContainer.style.display = 'none';
+            appContainer.style.display = 'block';
+            messageArea.textContent = '';
+            document.getElementById('welcome-message').textContent = `स्वागत है, ${username}!`;
+            loadTasks();
+        }
 
-// टास्क का स्टेटस अपडेट करें
-async function updateTaskStatus(taskID, newStatus) {
-    showLoader(true);
-    await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'updateTaskStatus', taskID, status: newStatus }),
-        mode: 'no-cors'
-    });
-    setTimeout(loadTasks, 1000);
-}
+        async function loadTasks() {
+            const username = localStorage.getItem('loggedInUser');
+            if (!username) return;
 
-// टास्क डिलीट करें
-async function deleteTask(taskID) {
-    showLoader(true);
-    await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'deleteTask', taskID }),
-        mode: 'no-cors'
-    });
-    setTimeout(loadTasks, 1000);
-}
+            showLoader(true);
+            taskList.innerHTML = '';
+            try {
+                const response = await fetch(`${SCRIPT_URL}?username=${username}`);
+                const tasks = await response.json();
+                showLoader(false);
+
+                if(tasks.status === 'error'){
+                    showMessage(tasks.message, true);
+                    return;
+                }
+
+                tasks.forEach(task => {
+                    const li = document.createElement('li');
+                    li.textContent = task.taskText;
+                    li.dataset.taskId = task.taskID;
+                    if (task.status === 'completed') {
+                        li.classList.add('completed');
+                    }
+
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'task-actions';
+
+                    const toggleBtn = document.createElement('button');
+                    toggleBtn.textContent = task.status === 'completed' ? 'Undo' : 'Complete';
+                    toggleBtn.onclick = () => updateTaskStatus(task.taskID, task.status === 'completed' ? 'pending' : 'completed');
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.onclick = () => deleteTask(task.taskID);
+
+                    actionsDiv.appendChild(toggleBtn);
+                    actionsDiv.appendChild(deleteBtn);
+                    li.appendChild(actionsDiv);
+                    taskList.appendChild(li);
+                });
+            } catch (error) {
+                showLoader(false);
+                showMessage('टास्क लोड करने में विफल।', true);
+            }
+        }
+
+        async function addTask() {
+            const taskText = taskInput.value.trim();
+            if (taskText === '') return;
+
+            const username = localStorage.getItem('loggedInUser');
+            showLoader(true);
+            const result = await postRequest({ action: 'addTask', username, taskText });
+            showLoader(false);
+
+            if (result.status === 'success') {
+                taskInput.value = '';
+                loadTasks();
+            } else {
+                showMessage(result.message, true);
+            }
+        }
+
+        async function updateTaskStatus(taskID, newStatus) {
+            showLoader(true);
+            await postRequest({ action: 'updateTaskStatus', taskID, status: newStatus });
+            // Don't hide loader, loadTasks will do it
+            loadTasks();
+        }
+
+        async function deleteTask(taskID) {
+            showLoader(true);
+            await postRequest({ action: 'deleteTask', taskID });
+            // Don't hide loader, loadTasks will do it
+            loadTasks();
+        }
+    </script>
+</body>
+</html>
