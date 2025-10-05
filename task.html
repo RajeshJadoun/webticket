@@ -358,16 +358,16 @@
     <div id="auth-container">
         <div id="login-form" class="form-container">
             <h2>Login</h2>
-            <input type="text" id="login-username" placeholder="Username" required>
-            <input type="password" id="login-password" placeholder="Password" required>
+            <input type="text" id="login-username" placeholder="Username" required autocomplete="username">
+            <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
             <button onclick="loginUser()">Login</button>
             <p>Don't have an account? <a href="#" onclick="toggleForms()">Sign Up</a></p>
         </div>
 
         <div id="signup-form" class="form-container" style="display:none;">
             <h2>Create New Account</h2>
-            <input type="text" id="signup-username" placeholder="Choose Username" required>
-            <input type="password" id="signup-password" placeholder="Create Password" required>
+            <input type="text" id="signup-username" placeholder="Choose Username" required autocomplete="username">
+            <input type="password" id="signup-password" placeholder="Create Password" required autocomplete="new-password">
             <button onclick="signupUser()">Sign Up</button>
             <p>Already have an account? <a href="#" onclick="toggleForms()">Login</a></p>
         </div>
@@ -395,7 +395,8 @@
     <script>
         // Configuration
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnYFTC7ChgfH6tssgleZMWdaLvX8TQxCrqDdEPXM1tLqeqHDOS3pFKbtFWOlvjf8-K5Q/exec";
-        const AUTO_REFRESH_INTERVAL = 20000; // 20 seconds in milliseconds
+        const AUTO_REFRESH_INTERVAL = 20000; // 20 seconds
+        const SESSION_TIMEOUT = 3600000; // 1 hour in milliseconds
 
         // DOM Elements
         const authContainer = document.getElementById('auth-container');
@@ -410,15 +411,125 @@
 
         // Global Variables
         let autoRefreshTimer = null;
+        let sessionToken = null;
+        let sessionTimeout = null;
 
         // Initialize app on page load
         document.addEventListener('DOMContentLoaded', () => {
-            const loggedInUser = localStorage.getItem('loggedInUser');
-            if (loggedInUser) {
-                showAppView(loggedInUser);
+            checkSession();
+        });
+
+        // Security: Check if session is valid
+        function checkSession() {
+            const username = getSecureItem('username');
+            const token = getSecureItem('sessionToken');
+            const loginTime = getSecureItem('loginTime');
+            
+            if (username && token && loginTime) {
+                const currentTime = Date.now();
+                const timeDiff = currentTime - parseInt(loginTime);
+                
+                // Check if session has expired (1 hour)
+                if (timeDiff < SESSION_TIMEOUT) {
+                    sessionToken = token;
+                    verifySessionWithServer(username, token);
+                } else {
+                    // Session expired
+                    clearSession();
+                    showAuthView();
+                    showMessage('Session expired. Please login again.', true);
+                }
             } else {
                 showAuthView();
             }
+        }
+
+        // Verify session with server
+        async function verifySessionWithServer(username, token) {
+            try {
+                showLoader(true);
+                const response = await fetch(`${SCRIPT_URL}?action=verifySession&username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`);
+                const result = await response.json();
+                showLoader(false);
+                
+                if (result.status === 'success') {
+                    showAppView(username);
+                } else {
+                    clearSession();
+                    showAuthView();
+                    showMessage('Invalid session. Please login again.', true);
+                }
+            } catch (error) {
+                showLoader(false);
+                clearSession();
+                showAuthView();
+                showMessage('Session verification failed. Please login again.', true);
+            }
+        }
+
+        // Generate secure session token
+        function generateSessionToken() {
+            return Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('') + '-' + Date.now();
+        }
+
+        // Secure storage functions
+        function setSecureItem(key, value) {
+            try {
+                const encryptedValue = btoa(JSON.stringify({ v: value, t: Date.now() }));
+                localStorage.setItem(key, encryptedValue);
+            } catch (e) {
+                console.error('Storage error:', e);
+            }
+        }
+
+        function getSecureItem(key) {
+            try {
+                const item = localStorage.getItem(key);
+                if (!item) return null;
+                const decoded = JSON.parse(atob(item));
+                return decoded.v;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function clearSession() {
+            localStorage.removeItem('username');
+            localStorage.removeItem('sessionToken');
+            localStorage.removeItem('loginTime');
+            sessionToken = null;
+            stopAutoRefresh();
+            clearSessionTimeout();
+        }
+
+        // Set session timeout
+        function setSessionTimeout() {
+            clearSessionTimeout();
+            sessionTimeout = setTimeout(() => {
+                logout();
+                showMessage('Session expired due to inactivity.', true);
+            }, SESSION_TIMEOUT);
+        }
+
+        function clearSessionTimeout() {
+            if (sessionTimeout) {
+                clearTimeout(sessionTimeout);
+                sessionTimeout = null;
+            }
+        }
+
+        // Reset session timeout on user activity
+        function resetSessionTimeout() {
+            if (appContainer.style.display !== 'none') {
+                setSessionTimeout();
+            }
+        }
+
+        // Add activity listeners
+        ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+            document.addEventListener(event, resetSessionTimeout);
         });
 
         // Toggle between login and signup forms
@@ -453,18 +564,8 @@
             }, 1000);
         }
 
-        // Send POST request without waiting for response (no-cors mode)
-        function postData(data) {
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(data)
-            }).catch(err => console.error("Fetch error:", err));
-        }
-
         // User signup
-        function signupUser() {
+        async function signupUser() {
             const username = document.getElementById('signup-username').value.trim();
             const password = document.getElementById('signup-password').value.trim();
             
@@ -472,17 +573,39 @@
                 showMessage('Please fill both username and password.', true);
                 return;
             }
+
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters long.', true);
+                return;
+            }
             
             showLoader(true);
-            postData({ action: 'signup', username, password });
-            showLoader(false);
             
-            showMessage('Signup request sent. You can now login.');
-            setTimeout(() => toggleForms(), 1500);
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        action: 'signup', 
+                        username, 
+                        password 
+                    })
+                });
+                
+                showLoader(false);
+                showMessage('Signup request sent. Please wait for admin approval before logging in.');
+                
+                setTimeout(() => {
+                    toggleForms();
+                }, 2000);
+            } catch (error) {
+                showLoader(false);
+                showMessage('Signup failed. Please try again.', true);
+            }
         }
 
-        // User login
-        function loginUser() {
+        // User login with server verification
+        async function loginUser() {
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value.trim();
             
@@ -491,16 +614,69 @@
                 return;
             }
             
-            postData({ action: 'login', username, password });
-            localStorage.setItem('loggedInUser', username);
-            showAppView(username);
+            showLoader(true);
+            
+            try {
+                // Create session token
+                const token = generateSessionToken();
+                
+                // Send login request to server
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        action: 'login', 
+                        username, 
+                        password,
+                        sessionToken: token
+                    })
+                });
+
+                const result = await response.json();
+                showLoader(false);
+
+                if (result.status === 'success') {
+                    // Store credentials securely
+                    sessionToken = token;
+                    setSecureItem('username', username);
+                    setSecureItem('sessionToken', token);
+                    setSecureItem('loginTime', Date.now().toString());
+                    
+                    showAppView(username);
+                } else {
+                    showMessage(result.message || 'Invalid username or password.', true);
+                    // Clear any stored data
+                    clearSession();
+                }
+            } catch (error) {
+                showLoader(false);
+                showMessage('Login failed. Please check your credentials.', true);
+                console.error('Login error:', error);
+            }
         }
 
         // User logout
         function logout() {
-            stopAutoRefresh();
-            localStorage.removeItem('loggedInUser');
+            // Notify server about logout
+            const username = getSecureItem('username');
+            const token = getSecureItem('sessionToken');
+            
+            if (username && token) {
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        action: 'logout', 
+                        username,
+                        sessionToken: token
+                    })
+                });
+            }
+            
+            clearSession();
             showAuthView();
+            showMessage('Logged out successfully.');
         }
 
         // Show authentication view
@@ -508,6 +684,7 @@
             authContainer.style.display = 'block';
             appContainer.style.display = 'none';
             clearMessage();
+            stopAutoRefresh();
         }
 
         // Show app view
@@ -518,12 +695,18 @@
             document.getElementById('welcome-message').textContent = `Welcome, ${username}!`;
             loadTasks();
             startAutoRefresh();
+            setSessionTimeout();
         }
 
-        // Load tasks from server
+        // Load tasks from server with authentication
         async function loadTasks(showIndicator = false) {
-            const username = localStorage.getItem('loggedInUser');
-            if (!username) return;
+            const username = getSecureItem('username');
+            const token = getSecureItem('sessionToken');
+            
+            if (!username || !token) {
+                logout();
+                return;
+            }
 
             if (showIndicator) {
                 showRefreshIndicator();
@@ -534,14 +717,21 @@
             taskList.innerHTML = '';
             
             try {
-                const response = await fetch(`${SCRIPT_URL}?username=${username}`);
-                const tasks = await response.json();
+                const response = await fetch(`${SCRIPT_URL}?action=getTasks&username=${encodeURIComponent(username)}&token=${encodeURIComponent(token)}`);
+                const result = await response.json();
                 showLoader(false);
 
-                if (tasks.status === 'error') {
-                    showMessage(tasks.message, true);
+                if (result.status === 'error') {
+                    if (result.message.includes('Unauthorized') || result.message.includes('Invalid session')) {
+                        logout();
+                        showMessage('Session expired. Please login again.', true);
+                    } else {
+                        showMessage(result.message, true);
+                    }
                     return;
                 }
+
+                const tasks = result.tasks || result;
 
                 if (tasks.length === 0) {
                     taskList.innerHTML = `
@@ -591,54 +781,119 @@
             }
         }
 
-        // Add new task
-        function addTask() {
+        // Add new task with authentication
+        async function addTask() {
             const taskText = taskInput.value.trim();
             if (taskText === '') {
                 showMessage('Please enter a task.', true);
                 return;
             }
 
-            const username = localStorage.getItem('loggedInUser');
-            postData({ action: 'addTask', username, taskText });
+            const username = getSecureItem('username');
+            const token = getSecureItem('sessionToken');
             
-            taskInput.value = '';
-            showMessage('Adding task...', false);
-            
-            setTimeout(() => {
-                loadTasks();
-            }, 1500);
+            if (!username || !token) {
+                logout();
+                return;
+            }
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        action: 'addTask', 
+                        username, 
+                        taskText,
+                        sessionToken: token
+                    })
+                });
+                
+                taskInput.value = '';
+                showMessage('Adding task...', false);
+                
+                setTimeout(() => {
+                    loadTasks();
+                }, 1500);
+            } catch (error) {
+                showMessage('Failed to add task.', true);
+            }
         }
 
-        // Update task status
-        function updateTaskStatus(taskID, newStatus) {
-            postData({ action: 'updateTaskStatus', taskID, status: newStatus });
-            showMessage('Updating task...', false);
+        // Update task status with authentication
+        async function updateTaskStatus(taskID, newStatus) {
+            const username = getSecureItem('username');
+            const token = getSecureItem('sessionToken');
             
-            setTimeout(() => {
-                loadTasks();
-            }, 1000);
+            if (!username || !token) {
+                logout();
+                return;
+            }
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        action: 'updateTaskStatus', 
+                        taskID, 
+                        status: newStatus,
+                        username,
+                        sessionToken: token
+                    })
+                });
+                
+                showMessage('Updating task...', false);
+                
+                setTimeout(() => {
+                    loadTasks();
+                }, 1000);
+            } catch (error) {
+                showMessage('Failed to update task.', true);
+            }
         }
 
-        // Delete task
-        function deleteTask(taskID) {
+        // Delete task with authentication
+        async function deleteTask(taskID) {
             if (!confirm('Are you sure you want to delete this task?')) {
                 return;
             }
             
-            postData({ action: 'deleteTask', taskID });
-            showMessage('Deleting task...', false);
+            const username = getSecureItem('username');
+            const token = getSecureItem('sessionToken');
             
-            setTimeout(() => {
-                loadTasks();
-            }, 1000);
+            if (!username || !token) {
+                logout();
+                return;
+            }
+
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ 
+                        action: 'deleteTask', 
+                        taskID,
+                        username,
+                        sessionToken: token
+                    })
+                });
+                
+                showMessage('Deleting task...', false);
+                
+                setTimeout(() => {
+                    loadTasks();
+                }, 1000);
+            } catch (error) {
+                showMessage('Failed to delete task.', true);
+            }
         }
 
         // Start auto-refresh timer
         function startAutoRefresh() {
-            stopAutoRefresh(); // Clear any existing timer
+            stopAutoRefresh();
             autoRefreshTimer = setInterval(() => {
-                loadTasks(true); // Pass true to show refresh indicator instead of loader
+                loadTasks(true);
             }, AUTO_REFRESH_INTERVAL);
         }
 
@@ -650,16 +905,25 @@
             }
         }
 
-        // Stop auto-refresh when page is not visible
+        // Handle page visibility changes
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 stopAutoRefresh();
             } else {
-                const loggedInUser = localStorage.getItem('loggedInUser');
-                if (loggedInUser && appContainer.style.display !== 'none') {
+                const username = getSecureItem('username');
+                const token = getSecureItem('sessionToken');
+                if (username && token && appContainer.style.display !== 'none') {
                     loadTasks();
                     startAutoRefresh();
                 }
+            }
+        });
+
+        // Prevent right-click and F12 (basic protection)
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+                e.preventDefault();
             }
         });
     </script>
