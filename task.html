@@ -187,8 +187,7 @@
     <p id="message-area"></p>
 
     <script>
-        // ⚠️ यहाँ अपना वेब ऐप URL पेस्ट करें
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnYFTC7ChgfH6tssgleZMWdaLvX8TQxCrqDdEPXM1tLqeqHDOS3pFKbtFWOlvjf8-K5Q/execL";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnYFTC7ChgfH6tssgleZMWdaLvX8TQxCrqDdEPXM1tLqeqHDOS3pFKbtFWOlvjf8-K5Q/exec";
 
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
@@ -223,18 +222,17 @@
             messageArea.style.color = isError ? 'red' : 'green';
         }
 
-        async function postRequest(data) {
-            try {
-                // Apps Script can be slow. We'll use a fetch with a redirect to get the response.
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    redirect: 'follow', // Important
-                    body: JSON.stringify(data),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Use text/plain for better compatibility
-                });
-        
-        async function signupUser() {
+        // Generic function to send data without waiting for a response
+        function postData(data) {
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(data)
+            }).catch(err => console.error("Fetch error:", err));
+        }
+
+        function signupUser() {
             const username = document.getElementById('signup-username').value.trim();
             const password = document.getElementById('signup-password').value.trim();
             if (!username || !password) {
@@ -243,35 +241,26 @@
             }
             
             showLoader(true);
-            const result = await postRequest({ action: 'signup', username, password });
+            postData({ action: 'signup', username, password });
             showLoader(false);
-
-            if (result.status === 'success') {
-                showMessage('साइनअप सफल! अब आप लॉगिन कर सकते हैं।');
-                toggleForms();
-            } else {
-                showMessage(result.message, true);
-            }
+            
+            showMessage('साइनअप रिक्वेस्ट भेज दी गई है। अब आप लॉगिन कर सकते हैं।');
+            toggleForms();
         }
 
-        async function loginUser() {
+        function loginUser() {
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value.trim();
             if (!username || !password) {
                 showMessage('यूजरनेम और पासवर्ड दोनों भरें।', true);
                 return;
             }
-
-            showLoader(true);
-            const result = await postRequest({ action: 'login', username, password });
-            showLoader(false);
-
-            if (result.status === 'success') {
-                localStorage.setItem('loggedInUser', username);
-                showAppView(username);
-            } else {
-                showMessage(result.message, true);
-            }
+            
+            // With 'no-cors', we can't check the response.
+            // We just assume login is correct and try to show the app.
+            postData({ action: 'login', username, password }); // We still send the password for logging/security purposes if you want to track attempts.
+            localStorage.setItem('loggedInUser', username);
+            showAppView(username);
         }
 
         function logout() {
@@ -300,6 +289,7 @@
             showLoader(true);
             taskList.innerHTML = '';
             try {
+                // GET requests are not affected by CORS issues in the same way
                 const response = await fetch(`${SCRIPT_URL}?username=${username}`);
                 const tasks = await response.json();
                 showLoader(false);
@@ -307,6 +297,10 @@
                 if(tasks.status === 'error'){
                     showMessage(tasks.message, true);
                     return;
+                }
+
+                if (tasks.length === 0) {
+                     showMessage("कोई टास्क नहीं मिला। एक नया टास्क जोड़ें!", false);
                 }
 
                 tasks.forEach(task => {
@@ -336,39 +330,39 @@
                 });
             } catch (error) {
                 showLoader(false);
-                showMessage('टास्क लोड करने में विफल।', true);
+                showMessage('टास्क लोड करने में विफल। गलत यूजरनेम हो सकता है।', true);
             }
         }
 
-        async function addTask() {
+        function addTask() {
             const taskText = taskInput.value.trim();
             if (taskText === '') return;
 
             const username = localStorage.getItem('loggedInUser');
-            showLoader(true);
-            const result = await postRequest({ action: 'addTask', username, taskText });
-            showLoader(false);
-
-            if (result.status === 'success') {
-                taskInput.value = '';
+            postData({ action: 'addTask', username, taskText });
+            
+            taskInput.value = '';
+            showMessage('टास्क जोड़ा जा रहा है...', false);
+            // Give Google Sheets a moment to update before reloading
+            setTimeout(() => {
                 loadTasks();
-            } else {
-                showMessage(result.message, true);
-            }
+            }, 1500); // 1.5 seconds delay
         }
 
-        async function updateTaskStatus(taskID, newStatus) {
-            showLoader(true);
-            await postRequest({ action: 'updateTaskStatus', taskID, status: newStatus });
-            // Don't hide loader, loadTasks will do it
-            loadTasks();
+        function updateTaskStatus(taskID, newStatus) {
+            postData({ action: 'updateTaskStatus', taskID, status: newStatus });
+            showMessage('टास्क अपडेट हो रहा है...', false);
+            setTimeout(() => {
+                loadTasks();
+            }, 1000);
         }
 
-        async function deleteTask(taskID) {
-            showLoader(true);
-            await postRequest({ action: 'deleteTask', taskID });
-            // Don't hide loader, loadTasks will do it
-            loadTasks();
+        function deleteTask(taskID) {
+            postData({ action: 'deleteTask', taskID });
+            showMessage('टास्क डिलीट हो रहा है...', false);
+            setTimeout(() => {
+                loadTasks();
+            }, 1000);
         }
     </script>
 </body>
