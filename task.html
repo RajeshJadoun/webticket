@@ -584,6 +584,7 @@
             try {
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ 
                         action: 'signup', 
@@ -623,6 +624,7 @@
                 // Send login request to server
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
+                     mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ 
                         action: 'login', 
@@ -800,6 +802,7 @@
             try {
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
+                     mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ 
                         action: 'addTask', 
@@ -833,6 +836,7 @@
             try {
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
+                     mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ 
                         action: 'updateTaskStatus', 
@@ -870,6 +874,7 @@
             try {
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
+                     mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ 
                         action: 'deleteTask', 
