@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Help Desk Tickets</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      max-width: 900px;
+      margin: auto;
+      padding: 20px;
+    }
+    form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .full {
+      grid-column: 1 / -1;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #27ae60;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+    }
+    .resolve-btn {
+      background: #3498db;
+      color: white;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🎫 Help Desk Ticket System</h2>
+    <form id="ticketForm">
+      <input type="text" name="raisedBy" placeholder="Raised By" required>
+      <input type="text" name="raisedFor" placeholder="Raised For" required>
+      <input type="text" name="assignedTo" placeholder="Assigned To" required>
+      <input type="file" name="fileAttachment" />
+      <textarea class="full" name="issue" placeholder="Describe the issue..." required></textarea>
+      <button class="full" type="submit">🚀 Raise Ticket</button>
+    </form>
+
+    <h3>Active Tickets</h3>
+    <div id="ticketList">Loading...</div>
+  </div>
+
+  <script>
+    const API_BASE_URL = "http://127.0.0.1:5000"; // 👈 Replace with ngrok URL if using
+
+    // Load Tickets
+    async function loadTickets() {
+      const res = await fetch(`${API_BASE_URL}/helpslip`);
+      const data = await res.json();
+      renderTickets(data);
+    }
+
+    function renderTickets(tickets) {
+      if (tickets.length === 0) {
+        document.getElementById("ticketList").innerHTML = "<p>No active tickets 🎉</p>";
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Raised By</th><th>For</th><th>Assigned</th>
+              <th>Issue</th><th>File</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      tickets.forEach(t => {
+        html += `
+          <tr>
+            <td>${t.id}</td>
+            <td>${t.raisedBy}</td>
+            <td>${t.raisedFor}</td>
+            <td>${t.assignedTo}</td>
+            <td>${t.issue}</td>
+            <td>
+              ${t.fileURL ? `<a href="${API_BASE_URL}${t.fileURL}" target="_blank">📎 ${t.fileName}</a>` : 'No File'}
+            </td>
+            <td><button class="resolve-btn" onclick="resolveTicket(${t.id})">Resolve</button></td>
+          </tr>
+        `;
+      });
+      html += "</tbody></table>";
+      document.getElementById("ticketList").innerHTML = html;
+    }
+
+    // Submit Ticket
+    document.getElementById("ticketForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+
+      const res = await fetch(`${API_BASE_URL}/helpslip`, {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await res.json();
+      if (result.status === "ok") {
+        e.target.reset();
+        loadTickets();
+      }
+    });
+
+    // Resolve Ticket
+    async function resolveTicket(id) {
+      await fetch(`${API_BASE_URL}/helpslip/resolve`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({id})
+      });
+      loadTickets();
+    }
+
+    loadTickets();
+    setInterval(loadTickets, 5000);
+  </script>
+</body>
+</html>
