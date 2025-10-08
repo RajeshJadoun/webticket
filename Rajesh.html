@@ -343,7 +343,7 @@
     // Load Tickets
     async function loadTickets() {
       try {
-        const res = await fetch(`${API_BASE_URL}/helpslip`);
+        const res = await fetch(`${API_BASE_URL}/tickets`);
         const data = await res.json();
         renderTickets(data);
       } catch (error) {
