@@ -1,79 +1,456 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Help Desk Ticket System (Django API)</title>
+  <title>Help Desk Tickets</title>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg,#667eea,#764ba2); padding: 30px; }
-    .container { background: #fff; border-radius: 15px; max-width: 1100px; margin: auto; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);}
-    input, textarea { width: 100%; padding: 10px; margin: 5px 0; border-radius: 8px; border: 1px solid #ccc;}
-    button { background: linear-gradient(135deg,#27ae60,#229954); color: #fff; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;}
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 10px; border-bottom: 1px solid #ddd; }
-    th { background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; }
-    .resolve-btn { background: #3498db; color: #fff; padding: 6px 12px; border-radius: 5px; cursor: pointer;}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 20px;
+      max-width: 1100px;
+      margin: auto;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h2 {
+      font-size: 2em;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .subtitle {
+      color: #7f8c8d;
+      margin-bottom: 30px;
+      font-size: 0.95em;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 18px;
+      margin-bottom: 40px;
+      padding: 30px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 15px;
+      border: 2px solid #e0e0e0;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #495057;
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 2px solid #dee2e6;
+      font-size: 0.95em;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      transform: translateY(-2px);
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      cursor: pointer;
+      border-style: dashed;
+    }
+
+    input[type="file"]:hover {
+      background: #f8f9fa;
+      border-color: #667eea;
+    }
+
+    button {
+      background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+      color: white;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.05em;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    h3 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .ticket-stats {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .stat-card .number {
+      font-size: 2em;
+      font-weight: bold;
+    }
+
+    .stat-card .label {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.9em;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #f0f0f0;
+      color: #495057;
+      font-size: 0.95em;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+      transition: background 0.2s ease;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .resolve-btn {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    }
+
+    .resolve-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+    }
+
+    .ticket-id {
+      background: #e8f4f8;
+      color: #2980b9;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .file-link {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .file-link:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .no-tickets {
+      text-align: center;
+      padding: 60px 20px;
+      color: #7f8c8d;
+      font-size: 1.1em;
+    }
+
+    .no-tickets-icon {
+      font-size: 4em;
+      margin-bottom: 15px;
+      opacity: 0.5;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #7f8c8d;
+      font-size: 1.1em;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      display: inline-block;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 25px;
+      }
+
+      form {
+        padding: 20px;
+        grid-template-columns: 1fr;
+      }
+
+      h2 {
+        font-size: 1.5em;
+      }
+
+      table {
+        font-size: 0.85em;
+      }
+
+      th, td {
+        padding: 10px 8px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>🎫 Help Desk Ticket System (Django REST)</h2>
+    <h2>🎫 Help Desk Ticket System</h2>
+    <p class="subtitle">Manage and track support tickets efficiently</p>
+    
     <form id="ticketForm">
-      <input type="text" name="raisedBy" placeholder="Raised By" required>
-      <input type="text" name="raisedFor" placeholder="Raised For" required>
-      <input type="text" name="assignedTo" placeholder="Assigned To" required>
-      <textarea name="issue" placeholder="Describe issue..." required></textarea>
-      <input type="file" name="file">
-      <button type="submit">🚀 Raise Ticket</button>
+      <div class="input-group">
+        <label for="raisedBy">Raised By</label>
+        <input type="text" id="raisedBy" name="raisedBy" placeholder="Your name" required>
+      </div>
+      <div class="input-group">
+        <label for="raisedFor">Raised For</label>
+        <input type="text" id="raisedFor" name="raisedFor" placeholder="Department/Person" required>
+      </div>
+      <div class="input-group">
+        <label for="assignedTo">Assigned To</label>
+        <input type="text" id="assignedTo" name="assignedTo" placeholder="Support staff" required>
+      </div>
+      <div class="input-group">
+        <label for="fileAttachment">Attachment (optional)</label>
+        <input type="file" id="fileAttachment" name="fileAttachment" />
+      </div>
+      <div class="input-group full">
+        <label for="issue">Issue Description</label>
+        <textarea id="issue" name="issue" placeholder="Describe the issue in detail..." required></textarea>
+      </div>
+      <button class="full" type="submit">🚀 Raise Ticket</button>
     </form>
 
     <h3>📋 Active Tickets</h3>
-    <div id="ticketList">Loading...</div>
+    <div class="ticket-stats" id="ticketStats"></div>
+    <div id="ticketList" class="loading"><span class="spinner">⏳</span>Loading tickets...</div>
   </div>
 
   <script>
-    const API_BASE_URL = "http://127.0.0.1:8000/api";
+    const API_BASE_URL = "http://127.0.0.1:8000/api"; // 👈 Replace with ngrok URL if using
 
+    // Load Tickets
     async function loadTickets() {
       try {
-        const res = await fetch(`${API_BASE_URL}/tickets/`);
+        const res = await fetch(`${API_BASE_URL}/tickets`);
         const data = await res.json();
         renderTickets(data);
-      } catch {
-        document.getElementById("ticketList").innerHTML = "⚠️ Server not responding";
+      } catch (error) {
+        document.getElementById("ticketList").innerHTML = '<div class="loading">⚠️ Unable to connect to server</div>';
       }
     }
 
     function renderTickets(tickets) {
-      if (!tickets.length) { document.getElementById("ticketList").innerHTML = "<p>No active tickets 🎉</p>"; return; }
-      let html = "<table><thead><tr><th>ID</th><th>By</th><th>For</th><th>Assigned</th><th>Issue</th><th>File</th><th>Action</th></tr></thead><tbody>";
+      // Update stats
+      const statsHtml = `
+        <div class="stat-card">
+          <div class="number">${tickets.length}</div>
+          <div class="label">Active Tickets</div>
+        </div>
+      `;
+      document.getElementById("ticketStats").innerHTML = statsHtml;
+
+      if (tickets.length === 0) {
+        document.getElementById("ticketList").innerHTML = `
+          <div class="no-tickets">
+            <div class="no-tickets-icon">🎉</div>
+            <div>No active tickets</div>
+            <div style="font-size: 0.9em; margin-top: 10px; opacity: 0.7;">All caught up!</div>
+          </div>
+        `;
+        return;
+      }
+
+      let html = `
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Raised By</th>
+                <th>For</th>
+                <th>Assigned</th>
+                <th>Issue</th>
+                <th>Attachment</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
       tickets.forEach(t => {
-        html += `<tr>
-          <td>#${t.id}</td>
-          <td>${t.raisedBy}</td>
-          <td>${t.raisedFor}</td>
-          <td>${t.assignedTo}</td>
-          <td>${t.issue}</td>
-          <td>${t.file ? `<a href="http://127.0.0.1:8000${t.file}" target="_blank">Open</a>` : '—'}</td>
-          <td><button class="resolve-btn" onclick="resolveTicket(${t.id})">Resolve</button></td>
-        </tr>`;
+        html += `
+          <tr>
+            <td><span class="ticket-id">#${t.id}</span></td>
+            <td>${t.raisedBy}</td>
+            <td>${t.raisedFor}</td>
+            <td>${t.assignedTo}</td>
+            <td>${t.issue}</td>
+            <td>
+              ${t.fileURL ? `<a href="${API_BASE_URL}${t.fileURL}" target="_blank" class="file-link">📎 ${t.fileName}</a>` : '<span style="color: #adb5bd;">No file</span>'}
+            </td>
+            <td><button class="resolve-btn" onclick="resolveTicket(${t.id})">✓ Resolve</button></td>
+          </tr>
+        `;
       });
-      html += "</tbody></table>";
+      html += "</tbody></table></div>";
       document.getElementById("ticketList").innerHTML = html;
     }
 
+    // Submit Ticket
     document.getElementById("ticketForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
-      await fetch(`${API_BASE_URL}/tickets/`, { method: "POST", body: formData });
-      e.target.reset();
-      loadTickets();
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      submitBtn.textContent = '⏳ Submitting...';
+      submitBtn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/tickets`, {
+          method: "POST",
+          body: formData
+        });
+
+        const result = await res.json();
+        if (result.status === "ok") {
+          e.target.reset();
+          loadTickets();
+          submitBtn.textContent = '✅ Ticket Raised!';
+          setTimeout(() => {
+            submitBtn.textContent = '🚀 Raise Ticket';
+            submitBtn.disabled = false;
+          }, 2000);
+        }
+      } catch (error) {
+        submitBtn.textContent = '❌ Error - Try Again';
+        submitBtn.disabled = false;
+      }
     });
 
+    // Resolve Ticket
     async function resolveTicket(id) {
-      await fetch(`${API_BASE_URL}/tickets/${id}/resolve/`, { method: "POST" });
-      loadTickets();
+      if (!confirm('Are you sure you want to resolve this ticket?')) return;
+      
+      try {
+        await fetch(`${API_BASE_URL}/helpslip/resolve`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({id})
+        });
+        loadTickets();
+      } catch (error) {
+        alert('Failed to resolve ticket. Please try again.');
+      }
     }
 
     loadTickets();
