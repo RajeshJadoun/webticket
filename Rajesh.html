@@ -338,7 +338,7 @@
   </div>
 
   <script>
-    const API_BASE_URL = "http://127.0.0.1:8000/api/tickets"; // 👈 Replace with ngrok URL if using
+    const API_BASE_URL = "http://127.0.0.1:8000/api"; // 👈 Replace with ngrok URL if using
 
     // Load Tickets
     async function loadTickets() {
@@ -416,7 +416,7 @@
       submitBtn.disabled = true;
 
       try {
-        const res = await fetch(`${API_BASE_URL}/helpslip`, {
+        const res = await fetch(`${API_BASE_URL}/tickets`, {
           method: "POST",
           body: formData
         });
