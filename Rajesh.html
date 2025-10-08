@@ -442,12 +442,13 @@
       if (!confirm('Are you sure you want to resolve this ticket?')) return;
       
       try {
-        await fetch(`${API_BASE_URL}tickets/resolve`, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({id})
+        async function resolveTicket(id) {
+        await fetch(`${API_BASE_URL}/tickets/${id}/resolve/`, {
+          method: "POST"
         });
         loadTickets();
+      }
+        
       } catch (error) {
         alert('Failed to resolve ticket. Please try again.');
       }
