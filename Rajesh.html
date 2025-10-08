@@ -442,7 +442,7 @@
       if (!confirm('Are you sure you want to resolve this ticket?')) return;
       
       try {
-        await fetch(`${API_BASE_URL}/helpslip/resolve`, {
+        await fetch(`${API_BASE_URL}tickets/resolve`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({id})
