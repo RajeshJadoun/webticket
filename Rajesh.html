@@ -338,124 +338,120 @@
   </div>
 
   <script>
-    const API_BASE_URL = "http://127.0.0.1:8000/api"; // 👈 Replace with ngrok URL if using
+const API_BASE_URL = "http://127.0.0.1:8000/api";
 
-    // Load Tickets
-    async function loadTickets() {
-      try {
-        const res = await fetch(`${API_BASE_URL}/tickets`);
-        const data = await res.json();
-        renderTickets(data);
-      } catch (error) {
-        document.getElementById("ticketList").innerHTML = '<div class="loading">⚠️ Unable to connect to server</div>';
-      }
-    }
+// Load Tickets
+async function loadTickets() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/tickets/`);
+    const data = await res.json();
+    renderTickets(data);
+  } catch (error) {
+    document.getElementById("ticketList").innerHTML = '<div class="loading">⚠️ Unable to connect to server</div>';
+  }
+}
 
-    function renderTickets(tickets) {
-      // Update stats
-      const statsHtml = `
-        <div class="stat-card">
-          <div class="number">${tickets.length}</div>
-          <div class="label">Active Tickets</div>
-        </div>
-      `;
-      document.getElementById("ticketStats").innerHTML = statsHtml;
+function renderTickets(tickets) {
+  const statsHtml = `
+    <div class="stat-card">
+      <div class="number">${tickets.length}</div>
+      <div class="label">Active Tickets</div>
+    </div>
+  `;
+  document.getElementById("ticketStats").innerHTML = statsHtml;
 
-      if (tickets.length === 0) {
-        document.getElementById("ticketList").innerHTML = `
-          <div class="no-tickets">
-            <div class="no-tickets-icon">🎉</div>
-            <div>No active tickets</div>
-            <div style="font-size: 0.9em; margin-top: 10px; opacity: 0.7;">All caught up!</div>
-          </div>
-        `;
-        return;
-      }
+  if (tickets.length === 0) {
+    document.getElementById("ticketList").innerHTML = `
+      <div class="no-tickets">
+        <div class="no-tickets-icon">🎉</div>
+        <div>No active tickets</div>
+        <div style="font-size: 0.9em; margin-top: 10px; opacity: 0.7;">All caught up!</div>
+      </div>
+    `;
+    return;
+  }
 
-      let html = `
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Raised By</th>
-                <th>For</th>
-                <th>Assigned</th>
-                <th>Issue</th>
-                <th>Attachment</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-      `;
-      tickets.forEach(t => {
-        html += `
+  let html = `
+    <div class="table-container">
+      <table>
+        <thead>
           <tr>
-            <td><span class="ticket-id">#${t.id}</span></td>
-            <td>${t.raisedBy}</td>
-            <td>${t.raisedFor}</td>
-            <td>${t.assignedTo}</td>
-            <td>${t.issue}</td>
-            <td>
-              ${t.fileURL ? `<a href="${API_BASE_URL}${t.fileURL}" target="_blank" class="file-link">📎 ${t.fileName}</a>` : '<span style="color: #adb5bd;">No file</span>'}
-            </td>
-            <td><button class="resolve-btn" onclick="resolveTicket(${t.id})">✓ Resolve</button></td>
+            <th>ID</th>
+            <th>Raised By</th>
+            <th>For</th>
+            <th>Assigned</th>
+            <th>Issue</th>
+            <th>Attachment</th>
+            <th>Action</th>
           </tr>
-        `;
-      });
-      html += "</tbody></table></div>";
-      document.getElementById("ticketList").innerHTML = html;
-    }
+        </thead>
+        <tbody>
+  `;
+  tickets.forEach(t => {
+    html += `
+      <tr>
+        <td><span class="ticket-id">#${t.id}</span></td>
+        <td>${t.raisedBy}</td>
+        <td>${t.raisedFor}</td>
+        <td>${t.assignedTo}</td>
+        <td>${t.issue}</td>
+        <td>
+          ${t.file ? `<a href="http://127.0.0.1:8000${t.file}" target="_blank" class="file-link">📎 Open</a>` : '<span style="color: #adb5bd;">No file</span>'}
+        </td>
+        <td><button class="resolve-btn" onclick="resolveTicket(${t.id})">✓ Resolve</button></td>
+      </tr>
+    `;
+  });
+  html += "</tbody></table></div>";
+  document.getElementById("ticketList").innerHTML = html;
+}
 
-    // Submit Ticket
-    document.getElementById("ticketForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const submitBtn = e.target.querySelector('button[type="submit"]');
-      submitBtn.textContent = '⏳ Submitting...';
-      submitBtn.disabled = true;
+// Submit Ticket
+document.getElementById("ticketForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  submitBtn.textContent = '⏳ Submitting...';
+  submitBtn.disabled = true;
 
-      try {
-        const res = await fetch(`${API_BASE_URL}/tickets/`, {
-          method: "POST",
-          body: formData
-        });
-
-        const result = await res.json();
-        if (result.status === "ok") {
-          e.target.reset();
-          loadTickets();
-          submitBtn.textContent = '✅ Ticket Raised!';
-          setTimeout(() => {
-            submitBtn.textContent = '🚀 Raise Ticket';
-            submitBtn.disabled = false;
-          }, 2000);
-        }
-      } catch (error) {
-        submitBtn.textContent = '❌ Error - Try Again';
-        submitBtn.disabled = false;
-      }
+  try {
+    const res = await fetch(`${API_BASE_URL}/tickets/`, {
+      method: "POST",
+      body: formData
     });
 
-    // Resolve Ticket
-    async function resolveTicket(id) {
-      if (!confirm('Are you sure you want to resolve this ticket?')) return;
-      
-      try {
-        async function resolveTicket(id) {
-        await fetch(`${API_BASE_URL}/tickets/${id}/resolve/`, {
-          method: "POST"
-        });
-        loadTickets();
-      }
-        
-      } catch (error) {
-        alert('Failed to resolve ticket. Please try again.');
-      }
+    if (res.ok) {
+      e.target.reset();
+      loadTickets();
+      submitBtn.textContent = '✅ Ticket Raised!';
+      setTimeout(() => {
+        submitBtn.textContent = '🚀 Raise Ticket';
+        submitBtn.disabled = false;
+      }, 2000);
     }
+  } catch (error) {
+    submitBtn.textContent = '❌ Error - Try Again';
+    submitBtn.disabled = false;
+  }
+});
 
+// Resolve Ticket
+async function resolveTicket(id) {
+  if (!confirm('Are you sure you want to resolve this ticket?')) return;
+
+  try {
+    await fetch(`${API_BASE_URL}/tickets/${id}/resolve/`, {
+      method: "POST"
+    });
     loadTickets();
-    setInterval(loadTickets, 5000);
+  } catch (error) {
+    alert('Failed to resolve ticket. Please try again.');
+  }
+}
+
+loadTickets();
+setInterval(loadTickets, 5000);
+
   </script>
 </body>
 </html>
