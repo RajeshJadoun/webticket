@@ -338,7 +338,7 @@
   </div>
 
   <script>
-const API_BASE_URL = "https://prenatally-nonevangelic-afton.ngrok-free.dev/api/tickets/";
+const API_BASE_URL = "https://prenatally-nonevangelic-afton.ngrok-free.dev/api/";
 
 // Load Tickets
 async function loadTickets() {
@@ -396,7 +396,7 @@ function renderTickets(tickets) {
         <td>${t.assignedTo}</td>
         <td>${t.issue}</td>
         <td>
-          ${t.file ? `<a href="http://127.0.0.1:8000${t.file}" target="_blank" class="file-link">📎 Open</a>` : '<span style="color: #adb5bd;">No file</span>'}
+          ${t.file ? `<a href=https://prenatally-nonevangelic-afton.ngrok-free.dev${t.file}" target="_blank" class="file-link">📎 Open</a>` : '<span style="color: #adb5bd;">No file</span>'}
         </td>
         <td><button class="resolve-btn" onclick="resolveTicket(${t.id})">✓ Resolve</button></td>
       </tr>
